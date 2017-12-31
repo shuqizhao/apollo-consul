@@ -30,8 +30,8 @@ type ServiceItem struct {
 	Online bool `xml:"Online,attr"`
 }
 
-func NewApollo() *Apollo {
-	apollo := &Apollo{}
-	xcfg.LoadCfg(apollo)
+func NewApollo() Apollo {
+	apollo := Apollo{}
+	xcfg.LoadCfg(&apollo)
 	return apollo
 }

@@ -15,10 +15,10 @@ func main() {
 	go func() {
 		for  {
 			apolloEntity := NewApollo()
-			Register(apolloEntity)
+			Register(&apolloEntity)
 			os.Setenv("CONSUL_HTTP_ADDR", apolloEntity.ConsulUrl)
 			time.Sleep(5*time.Second)
-			newApolloEntity := Check(apolloEntity)
+			newApolloEntity := Check(&apolloEntity)
 			if apolloEntity.MinorVersion != major || IsChange(curApollo,newApolloEntity){
 				major = apolloEntity.MinorVersion
 				curApollo = newApolloEntity
