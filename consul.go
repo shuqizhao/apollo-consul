@@ -113,10 +113,15 @@ func Build(apolloEntity *Apollo) {
 	}
 	t.Execute(file, apolloEntity)
 	file.Close()
-	if PathExists(apolloEntity.BuildPath){
+
+	tmpFile := apolloEntity.BuildPath + "." + xcfg.GetGuid()
+	CopyFile(tmpFile,build_cfg_path)
+	if xcfg.Exist(apolloEntity.BuildPath){
 		os.Remove(apolloEntity.BuildPath)
 	}
-	CopyFile(apolloEntity.BuildPath,build_cfg_path)
+	os.Rename(tmpFile, apolloEntity.BuildPath)
+	os.Remove(tmpFile)
+
     cmds := strings.Split(apolloEntity.AfterBuild," ")
     if len(cmds)>1{
 		f, err := exec.Command(cmds[0], cmds[1:]...).Output()
@@ -185,15 +190,4 @@ func CopyFile(dstName, srcName string) (written int64, err error) {
 	}
 	defer dst.Close()
 	return io.Copy(dst, src)
-}
-
-func PathExists(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return false
 }
