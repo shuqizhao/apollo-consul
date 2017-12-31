@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+*.amb64
 
 # Test binary, build with `go test -c`
 *.test
