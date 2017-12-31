@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"io"
 	"os/exec"
+	"strings"
 )
 
 func Register(apolloEntity *Apollo){
@@ -38,7 +39,7 @@ func Register(apolloEntity *Apollo){
 			check.Interval = "5s"
 			//注册check服务。
 			registration.Check = check
-			log.Println("get check.TCP:", check)
+			//log.Println("get check.TCP:", check)
 
 			err = client.Agent().ServiceRegister(registration)
 
@@ -112,13 +113,25 @@ func Build(apolloEntity *Apollo) {
 	}
 	t.Execute(file, apolloEntity)
 	file.Close()
-	CopyFile(apolloEntity.BuildPath,build_cfg_path)
-
-	f, err := exec.Command(apolloEntity.AfterBuild, "").Output()
-	if err != nil {
-		fmt.Println(err.Error())
+	if PathExists(apolloEntity.BuildPath){
+		os.Remove(apolloEntity.BuildPath)
 	}
-	fmt.Println(string(f))
+	CopyFile(apolloEntity.BuildPath,build_cfg_path)
+    cmds := strings.Split(apolloEntity.AfterBuild," ")
+    if len(cmds)>1{
+		f, err := exec.Command(cmds[0], cmds[1:]...).Output()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println(string(f))
+	}else{
+		f, err := exec.Command(cmds[0], "").Output()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Println(string(f))
+	}
+	
 }
 
 func IsOnline(id string,name string,apollo *Apollo) bool  {
@@ -161,11 +174,13 @@ func GetServiceGroup(name string,apollo *Apollo) *ServiceGroup{
 func CopyFile(dstName, srcName string) (written int64, err error) {
 	src, err := os.Open(srcName)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer src.Close()
 	dst, err := os.OpenFile(dstName, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer dst.Close()
