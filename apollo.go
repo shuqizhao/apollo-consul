@@ -23,6 +23,7 @@ type ServiceGroup struct {
 }
 type ServiceItem struct {
 	Id string `xml:"Id,attr"`
+	Address string `xml:"Address,attr"`
 	Url string `xml:"Url,attr"`
 	Port string `xml:"Port,attr"`
 	Tag string `xml:"Tag,attr"`

@@ -8,14 +8,11 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"xcfg"
 	"text/template"
+	"io"
+	"os/exec"
 )
 
-func Register(){
-
-	apolloEntity:=NewApollo()
-
-	os.Setenv("CONSUL_HTTP_ADDR", apolloEntity.ConsulUrl)
-
+func Register(apolloEntity *Apollo){
 	config := consulapi.DefaultConfig()
 	client, err := consulapi.NewClient(config)
 	if err != nil {
@@ -52,7 +49,7 @@ func Register(){
 	}
 }
 
-func Check()  *Apollo{
+func Check(apolloEntity *Apollo)  *Apollo{
 	client, err := consulapi.NewClient(consulapi.DefaultConfig())
 
 	if err != nil {
@@ -60,7 +57,6 @@ func Check()  *Apollo{
 		return nil
 	}
 
-	apolloEntity:=NewApollo()
 	newApolloEntity := &Apollo{}
 	newApolloEntity.AfterBuild=apolloEntity.AfterBuild
 	newApolloEntity.ConsulUrl=apolloEntity.ConsulUrl
@@ -68,11 +64,11 @@ func Check()  *Apollo{
 	newApolloEntity.FixPage=apolloEntity.FixPage
 	newApolloEntity.ServiceGroups=[]ServiceGroup{}
 	for _,serviceGroup:=range apolloEntity.ServiceGroups {
+		serviceGroupT:=ServiceGroup{}
+		serviceGroupT.Name=serviceGroup.Name
+		serviceGroupT.Online=serviceGroup.Online
+		serviceGroupT.Services=[]ServiceItem{}
 		if serviceGroup.Online{
-			serviceGroupT:=ServiceGroup{}
-			serviceGroupT.Name=serviceGroup.Name
-			serviceGroupT.Online=serviceGroup.Online
-			serviceGroupT.Services=[]ServiceItem{}
 			services,_, err := client.Health().Service(serviceGroup.Name,"",true,nil)
 			for _, v := range services {
 				if v.Service.Service == serviceGroup.Name && IsOnline(v.Service.Tags[0],serviceGroup.Name,apolloEntity){
@@ -82,18 +78,24 @@ func Check()  *Apollo{
 			newApolloEntity.ServiceGroups = append(newApolloEntity.ServiceGroups, serviceGroupT)
 			count := len(serviceGroupT.Services)
 			if count == 0 {
-
+				//serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: "FixPage",Url: apolloEntity.FixPage,Online:true})
 			}
-
 			if err != nil {
 				fmt.Println(err)
 			}
+		}else{
+			//serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: "FixPage",Url: apolloEntity.FixPage,Online:true})
 		}
 	}
 	return newApolloEntity
 }
 
 func Build(apolloEntity *Apollo) {
+	defer func(){
+		if err:=recover();err!=nil{
+			fmt.Println(err)
+		}
+	}()
 	if apolloEntity == nil{
 		return
 	}
@@ -110,6 +112,13 @@ func Build(apolloEntity *Apollo) {
 	}
 	t.Execute(file, apolloEntity)
 	file.Close()
+	CopyFile(apolloEntity.BuildPath,build_cfg_path)
+
+	f, err := exec.Command(apolloEntity.AfterBuild, "").Output()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println(string(f))
 }
 
 func IsOnline(id string,name string,apollo *Apollo) bool  {
@@ -121,6 +130,55 @@ func IsOnline(id string,name string,apollo *Apollo) bool  {
 				}
 			}
 		}
+	}
+	return false
+}
+
+func IsChange(apolloEntity *Apollo,newApolloEntity *Apollo) bool {
+	if apolloEntity == nil{
+		return true
+	}
+	for _,v := range apolloEntity.ServiceGroups{
+		serGroup:=GetServiceGroup(v.Name,newApolloEntity)
+		if serGroup==nil{
+			return true
+		}else if len(serGroup.Services)!=len(v.Services){
+			return true
+		}
+	}
+	return false
+}
+
+func GetServiceGroup(name string,apollo *Apollo) *ServiceGroup{
+	for _,v := range apollo.ServiceGroups{
+		if v.Name == name{
+			return &v
+		}
+	}
+	return nil
+}
+
+func CopyFile(dstName, srcName string) (written int64, err error) {
+	src, err := os.Open(srcName)
+	if err != nil {
+		return
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(dstName, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer dst.Close()
+	return io.Copy(dst, src)
+}
+
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
 	}
 	return false
 }
