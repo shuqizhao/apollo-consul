@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/xml"
-	"xcfg"
+	"github.com/shuqizhao/xcfg"
 )
 
 type Apollo struct {
