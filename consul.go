@@ -71,21 +71,17 @@ func Check(apolloEntity *Apollo)  *Apollo{
 		serviceGroupT.Services=[]ServiceItem{}
 		if serviceGroup.Online{
 			services,_, err := client.Health().Service(serviceGroup.Name,"",true,nil)
+			if err!=nil{
+				fmt.Println(err)
+			}
 			for _, v := range services {
 				if v.Service.Service == serviceGroup.Name && IsOnline(v.Service.Tags[0],serviceGroup.Name,apolloEntity){
 					serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: v.Service.Tags[0],Url: v.Service.Address,Port: strconv.Itoa(v.Service.Port),Online:true})
 				}
 			}
+		}
+		if serviceGroup.IsEnable{
 			newApolloEntity.ServiceGroups = append(newApolloEntity.ServiceGroups, serviceGroupT)
-			count := len(serviceGroupT.Services)
-			if count == 0 {
-				//serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: "FixPage",Url: apolloEntity.FixPage,Online:true})
-			}
-			if err != nil {
-				fmt.Println(err)
-			}
-		}else{
-			//serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: "FixPage",Url: apolloEntity.FixPage,Online:true})
 		}
 	}
 	return newApolloEntity

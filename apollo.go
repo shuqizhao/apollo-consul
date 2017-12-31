@@ -19,6 +19,7 @@ type Apollo struct {
 type ServiceGroup struct {
 	Name string `xml:"Name,attr"`
 	Online bool `xml:"Online,attr"`
+	IsEnable bool `xml:"IsEnable,attr"`
 	Services []ServiceItem `xml:"Service"`
 }
 type ServiceItem struct {
