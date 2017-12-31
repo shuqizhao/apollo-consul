@@ -2,23 +2,31 @@ package main
 
 import (
 	"encoding/xml"
-	"github.com/shuqizhao/xcfg"
+	"xcfg"
 )
 
+const CfgName  ="MyApollo"
 type Apollo struct {
 	XMLName      xml.Name      `xml:"MyApollo"`
-	ServiceGroups      []ServiceGroup `xml:"services"`
+	ConsulUrl      string `xml:"ConsulUrl,attr"`
+	BuildPath string `xml:"BuildPath,attr"`
+	AfterBuild string `xml:"AfterBuild,attr"`
+	FixPage string `xml:"FixPage,attr"`
+	ServiceGroups      []ServiceGroup `xml:"Services"`
 	MajorVersion int           `xml:"majorVersion,attr"`
 	MinorVersion int           `xml:"minorVersion,attr"`
 }
 type ServiceGroup struct {
-	Name string `xml:"name,attr"`
-	Online bool `xml:"online,attr"`
-	Services []ServiceItem `xml:"service"`
+	Name string `xml:"Name,attr"`
+	Online bool `xml:"Online,attr"`
+	Services []ServiceItem `xml:"Service"`
 }
 type ServiceItem struct {
-	Address string `xml:"address,attr"`
-	Online bool `xml:"online,attr"`
+	Id string `xml:"Id,attr"`
+	Url string `xml:"Url,attr"`
+	Port string `xml:"Port,attr"`
+	Tag string `xml:"Tag,attr"`
+	Online bool `xml:"Online,attr"`
 }
 
 func NewApollo() *Apollo {

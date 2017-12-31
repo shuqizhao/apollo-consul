@@ -6,16 +6,16 @@ import (
 )
 
 func main() {
+	fmt.Println("Starting apollo-consul")
 
-	for{
-		apollo:=NewApollo()
-		for _,serviceGroup:=range apollo.ServiceGroups{
-			fmt.Println(serviceGroup.Name)
-			for _,service:=range serviceGroup.Services {
-				fmt.Println(service.Address,service.Online)
-			}
+	ch := make(chan int)
+	go func() {
+		for  {
+			Register()
+			time.Sleep(5*time.Second)
+			apollo:=Check()
+			Build(apollo)
 		}
-		time.Sleep(time.Second*5)
-	}
-
+	}()
+	<-ch
 }
