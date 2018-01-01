@@ -14,6 +14,11 @@ import (
 )
 
 func Register(apolloEntity *Apollo){
+	defer func(){
+		if err:=recover();err!=nil{
+			fmt.Println(err)
+		}
+	}()
 	config := consulapi.DefaultConfig()
 	client, err := consulapi.NewClient(config)
 	if err != nil {
@@ -51,6 +56,11 @@ func Register(apolloEntity *Apollo){
 }
 
 func Check(apolloEntity *Apollo)  *Apollo{
+	defer func(){
+		if err:=recover();err!=nil{
+			fmt.Println(err)
+		}
+	}()
 	client, err := consulapi.NewClient(consulapi.DefaultConfig())
 
 	if err != nil {
@@ -149,7 +159,7 @@ func IsOnline(id string,name string,apollo *Apollo) bool  {
 }
 
 func IsChange(apolloEntity *Apollo,newApolloEntity *Apollo) bool {
-	if apolloEntity == nil{
+	if apolloEntity == nil || newApolloEntity == nil{
 		return true
 	}
 	for _,v := range apolloEntity.ServiceGroups{
