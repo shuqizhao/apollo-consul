@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"os"
+	"time"
 )
 
 func main() {
@@ -14,10 +14,15 @@ func main() {
 	go func() {
 		for {
 			apolloEntity := NewApollo()
-			os.Setenv("CONSUL_HTTP_ADDR", apolloEntity.ConsulUrl)
-			Register(&apolloEntity)
 			time.Sleep(5 * time.Second)
-			newApolloEntity := Check(&apolloEntity)
+			if apolloEntity.ConsulUrl != "" {
+				os.Setenv("CONSUL_HTTP_ADDR", apolloEntity.ConsulUrl)
+				Register(&apolloEntity)
+			}
+			newApolloEntity := &apolloEntity
+			if apolloEntity.ConsulUrl != "" {
+				newApolloEntity = Check(&apolloEntity)
+			}
 			if apolloEntity.MinorVersion != major || IsChange(curApollo, newApolloEntity) {
 				major = apolloEntity.MinorVersion
 				curApollo = newApolloEntity

@@ -2,20 +2,20 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"log"
-	"strconv"
 	consulapi "github.com/hashicorp/consul/api"
-	"xcfg"
-	"text/template"
+	"github.com/shuqizhao/xcfg"
 	"io"
+	"log"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"text/template"
 )
 
-func Register(apolloEntity *Apollo){
-	defer func(){
-		if err:=recover();err!=nil{
+func Register(apolloEntity *Apollo) {
+	defer func() {
+		if err := recover(); err != nil {
 			fmt.Println(err)
 		}
 	}()
@@ -25,10 +25,10 @@ func Register(apolloEntity *Apollo){
 		fmt.Println("consul client error : ", err)
 		return
 	}
-	for _,serviceGroup:=range apolloEntity.ServiceGroups{
-		for _,service:=range serviceGroup.Services {
+	for _, serviceGroup := range apolloEntity.ServiceGroups {
+		for _, service := range serviceGroup.Services {
 			registration := new(consulapi.AgentServiceRegistration)
-			registration.ID = serviceGroup.Name+service.Id
+			registration.ID = serviceGroup.Name + service.Id
 			registration.Name = serviceGroup.Name
 			a, _ := strconv.Atoi(service.Port)
 			registration.Port = a
@@ -37,7 +37,7 @@ func Register(apolloEntity *Apollo){
 
 			//增加check。
 			check := new(consulapi.AgentServiceCheck)
-			check.TCP =service.Url+":"+service.Port
+			check.TCP = service.Url + ":" + service.Port
 			//设置超时 5s。
 			check.Timeout = "5s"
 			//设置间隔 5s。
@@ -55,9 +55,9 @@ func Register(apolloEntity *Apollo){
 	}
 }
 
-func Check(apolloEntity *Apollo)  *Apollo{
-	defer func(){
-		if err:=recover();err!=nil{
+func Check(apolloEntity *Apollo) *Apollo {
+	defer func() {
+		if err := recover(); err != nil {
 			fmt.Println(err)
 		}
 	}()
@@ -69,28 +69,28 @@ func Check(apolloEntity *Apollo)  *Apollo{
 	}
 
 	newApolloEntity := &Apollo{}
-	newApolloEntity.AfterBuild=apolloEntity.AfterBuild
-	newApolloEntity.ConsulUrl=apolloEntity.ConsulUrl
-	newApolloEntity.BuildPath=apolloEntity.BuildPath
-	newApolloEntity.FixPage=apolloEntity.FixPage
-	newApolloEntity.ServiceGroups=[]ServiceGroup{}
-	for _,serviceGroup:=range apolloEntity.ServiceGroups {
-		serviceGroupT:=ServiceGroup{}
-		serviceGroupT.Name=serviceGroup.Name
-		serviceGroupT.Online=serviceGroup.Online
-		serviceGroupT.Services=[]ServiceItem{}
-		if serviceGroup.Online{
-			services,_, err := client.Health().Service(serviceGroup.Name,"",true,nil)
-			if err!=nil{
+	newApolloEntity.AfterBuild = apolloEntity.AfterBuild
+	newApolloEntity.ConsulUrl = apolloEntity.ConsulUrl
+	newApolloEntity.BuildPath = apolloEntity.BuildPath
+	newApolloEntity.FixPage = apolloEntity.FixPage
+	newApolloEntity.ServiceGroups = []ServiceGroup{}
+	for _, serviceGroup := range apolloEntity.ServiceGroups {
+		serviceGroupT := ServiceGroup{}
+		serviceGroupT.Name = serviceGroup.Name
+		serviceGroupT.Online = serviceGroup.Online
+		serviceGroupT.Services = []ServiceItem{}
+		if serviceGroup.Online {
+			services, _, err := client.Health().Service(serviceGroup.Name, "", true, nil)
+			if err != nil {
 				fmt.Println(err)
 			}
 			for _, v := range services {
-				if v.Service.Service == serviceGroup.Name && IsOnline(v.Service.Tags[0],serviceGroup.Name,apolloEntity){
-					serviceGroupT.Services = append(serviceGroupT.Services,ServiceItem{Id: v.Service.Tags[0],Url: v.Service.Address,Port: strconv.Itoa(v.Service.Port),Online:true})
+				if v.Service.Service == serviceGroup.Name && IsOnline(v.Service.Tags[0], serviceGroup.Name, apolloEntity) {
+					serviceGroupT.Services = append(serviceGroupT.Services, ServiceItem{Id: v.Service.Tags[0], Url: v.Service.Address, Port: strconv.Itoa(v.Service.Port), Online: true})
 				}
 			}
 		}
-		if serviceGroup.IsEnable{
+		if serviceGroup.IsEnable {
 			newApolloEntity.ServiceGroups = append(newApolloEntity.ServiceGroups, serviceGroupT)
 		}
 	}
@@ -98,12 +98,12 @@ func Check(apolloEntity *Apollo)  *Apollo{
 }
 
 func Build(apolloEntity *Apollo) {
-	defer func(){
-		if err:=recover();err!=nil{
+	defer func() {
+		if err := recover(); err != nil {
 			fmt.Println(err)
 		}
 	}()
-	if apolloEntity == nil{
+	if apolloEntity == nil {
 		return
 	}
 	cfgFolder := xcfg.GetAppCfgFolder()
@@ -121,35 +121,35 @@ func Build(apolloEntity *Apollo) {
 	file.Close()
 
 	tmpFile := apolloEntity.BuildPath + "." + xcfg.GetGuid()
-	CopyFile(tmpFile,build_cfg_path)
-	if xcfg.Exist(apolloEntity.BuildPath){
+	CopyFile(tmpFile, build_cfg_path)
+	if xcfg.Exist(apolloEntity.BuildPath) {
 		os.Remove(apolloEntity.BuildPath)
 	}
 	os.Rename(tmpFile, apolloEntity.BuildPath)
 	os.Remove(tmpFile)
 
-    cmds := strings.Split(apolloEntity.AfterBuild," ")
-    if len(cmds)>1{
+	cmds := strings.Split(apolloEntity.AfterBuild, " ")
+	if len(cmds) > 1 {
 		f, err := exec.Command(cmds[0], cmds[1:]...).Output()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 		fmt.Println(string(f))
-	}else{
+	} else {
 		f, err := exec.Command(cmds[0], "").Output()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 		fmt.Println(string(f))
 	}
-	
+
 }
 
-func IsOnline(id string,name string,apollo *Apollo) bool  {
-	for _,v := range apollo.ServiceGroups{
-		if v.Name == name{
-			for _,v1:=range v.Services{
-				if v1.Id==id{
+func IsOnline(id string, name string, apollo *Apollo) bool {
+	for _, v := range apollo.ServiceGroups {
+		if v.Name == name {
+			for _, v1 := range v.Services {
+				if v1.Id == id {
 					return v1.Online
 				}
 			}
@@ -158,24 +158,24 @@ func IsOnline(id string,name string,apollo *Apollo) bool  {
 	return false
 }
 
-func IsChange(apolloEntity *Apollo,newApolloEntity *Apollo) bool {
-	if apolloEntity == nil || newApolloEntity == nil{
+func IsChange(apolloEntity *Apollo, newApolloEntity *Apollo) bool {
+	if apolloEntity == nil || newApolloEntity == nil {
 		return true
 	}
-	for _,v := range apolloEntity.ServiceGroups{
-		serGroup:=GetServiceGroup(v.Name,newApolloEntity)
-		if serGroup==nil{
+	for _, v := range apolloEntity.ServiceGroups {
+		serGroup := GetServiceGroup(v.Name, newApolloEntity)
+		if serGroup == nil {
 			return true
-		}else if len(serGroup.Services)!=len(v.Services){
+		} else if len(serGroup.Services) != len(v.Services) {
 			return true
 		}
 	}
 	return false
 }
 
-func GetServiceGroup(name string,apollo *Apollo) *ServiceGroup{
-	for _,v := range apollo.ServiceGroups{
-		if v.Name == name{
+func GetServiceGroup(name string, apollo *Apollo) *ServiceGroup {
+	for _, v := range apollo.ServiceGroups {
+		if v.Name == name {
 			return &v
 		}
 	}
