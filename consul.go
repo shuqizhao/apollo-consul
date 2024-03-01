@@ -2,58 +2,14 @@ package main
 
 import (
 	"fmt"
-	consulapi "github.com/hashicorp/consul/api"
-	"github.com/shuqizhao/xcfg"
 	"io"
-	"log"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/shuqizhao/xcfg"
 )
-
-func Register(apolloEntity *Apollo) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println(err)
-		}
-	}()
-	config := consulapi.DefaultConfig()
-	client, err := consulapi.NewClient(config)
-	if err != nil {
-		fmt.Println("consul client error : ", err)
-		return
-	}
-	for _, serviceGroup := range apolloEntity.ServiceGroups {
-		for _, service := range serviceGroup.Services {
-			registration := new(consulapi.AgentServiceRegistration)
-			registration.ID = serviceGroup.Name + service.Id
-			registration.Name = serviceGroup.Name
-			a, _ := strconv.Atoi(service.Port)
-			registration.Port = a
-			registration.Tags = []string{service.Id}
-			registration.Address = service.Url
-
-			//增加check。
-			check := new(consulapi.AgentServiceCheck)
-			check.TCP = service.Url + ":" + service.Port
-			//设置超时 5s。
-			check.Timeout = "5s"
-			//设置间隔 5s。
-			check.Interval = "5s"
-			//注册check服务。
-			registration.Check = check
-			//log.Println("get check.TCP:", check)
-
-			err = client.Agent().ServiceRegister(registration)
-
-			if err != nil {
-				log.Println("register server error : ", err)
-			}
-		}
-	}
-}
 
 func Check(apolloEntity *Apollo) *Apollo {
 	defer func() {
@@ -61,12 +17,6 @@ func Check(apolloEntity *Apollo) *Apollo {
 			fmt.Println(err)
 		}
 	}()
-	client, err := consulapi.NewClient(consulapi.DefaultConfig())
-
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
 
 	newApolloEntity := &Apollo{}
 	newApolloEntity.AfterBuild = apolloEntity.AfterBuild
@@ -78,15 +28,12 @@ func Check(apolloEntity *Apollo) *Apollo {
 		serviceGroupT := ServiceGroup{}
 		serviceGroupT.Name = serviceGroup.Name
 		serviceGroupT.Online = serviceGroup.Online
+		serviceGroupT.IsEnable = serviceGroup.IsEnable
 		serviceGroupT.Services = []ServiceItem{}
 		if serviceGroup.Online {
-			services, _, err := client.Health().Service(serviceGroup.Name, "", true, nil)
-			if err != nil {
-				fmt.Println(err)
-			}
-			for _, v := range services {
-				if v.Service.Service == serviceGroup.Name && IsOnline(v.Service.Tags[0], serviceGroup.Name, apolloEntity) {
-					serviceGroupT.Services = append(serviceGroupT.Services, ServiceItem{Id: v.Service.Tags[0], Url: v.Service.Address, Port: strconv.Itoa(v.Service.Port), Online: true})
+			for _, v := range serviceGroup.Services {
+				if v.Online {
+					serviceGroupT.Services = append(serviceGroupT.Services, ServiceItem{Id: v.Id, Address: v.Address, Url: v.Url, Tag: v.Tag, Port: v.Port, Online: true})
 				}
 			}
 		}
@@ -143,19 +90,6 @@ func Build(apolloEntity *Apollo) {
 		fmt.Println(string(f))
 	}
 
-}
-
-func IsOnline(id string, name string, apollo *Apollo) bool {
-	for _, v := range apollo.ServiceGroups {
-		if v.Name == name {
-			for _, v1 := range v.Services {
-				if v1.Id == id {
-					return v1.Online
-				}
-			}
-		}
-	}
-	return false
 }
 
 func IsChange(apolloEntity *Apollo, newApolloEntity *Apollo) bool {
