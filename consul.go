@@ -32,9 +32,7 @@ func Check(apolloEntity *Apollo) *Apollo {
 		serviceGroupT.Services = []ServiceItem{}
 		if serviceGroup.Online {
 			for _, v := range serviceGroup.Services {
-				if v.Online {
-					serviceGroupT.Services = append(serviceGroupT.Services, ServiceItem{Id: v.Id, Address: v.Address, Url: v.Url, Tag: v.Tag, Port: v.Port, Online: true})
-				}
+				serviceGroupT.Services = append(serviceGroupT.Services, ServiceItem{Id: v.Id, Address: v.Address, Url: v.Url, Tag: v.Tag, Port: v.Port, Online: true})
 			}
 		}
 		if serviceGroup.IsEnable {
