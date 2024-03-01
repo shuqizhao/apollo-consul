@@ -57,8 +57,11 @@ func Build(apolloEntity *Apollo) {
 	template_cfg_path := cfgFolder + "/" + CfgName + ".template"
 	b := xcfg.ReadFile(template_cfg_path)
 
-	t := template.New("MyApollo")
-	t, _ = t.Parse(string(b))
+	t, err := template.New("MyApollo").Parse(string(b))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	build_cfg_path := cfgFolder + "/" + CfgName + ".build"
 	file, err := os.Create(build_cfg_path)
 	if err != nil {
